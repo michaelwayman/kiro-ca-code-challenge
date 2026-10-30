@@ -8,3 +8,27 @@ wp-content/uploads/wp-personal-data-exports/
 
 # Interviewer-only material — never shipped to candidates.
 interviewer/
+
+# Python build and cache artifacts
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+build/
+.coverage
+htmlcov/
+
+# Node build and cache artifacts
+node_modules/
+dist/
+.vite/
+coverage/
+playwright-report/
+test-results/
+blob-report/
+
+# Local signing keys, if ever exported from the auth_keys volume (D-031)
+*.pem
