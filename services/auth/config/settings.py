@@ -4,7 +4,7 @@ from pathlib import Path
 
 import dj_database_url
 
-from config.env import env_bool, env_list, env_str, require_safe_secret
+from config.env import env_bool, env_list, env_path, env_str, require_safe_secret
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -51,6 +51,11 @@ DATABASES = {
     )
 }
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# --- Signing key (Req 5.2, D-031) -------------------------------------------
+# The PEM file on the `auth_keys` volume. Created in DEBUG by `ensure_signing_key`;
+# outside DEBUG it must already exist, or the entrypoint refuses to start.
+AUTH_SIGNING_KEY_PATH = env_path("AUTH_SIGNING_KEY_PATH", default=Path("/run/keys/signing.pem"))
 
 # --- I18N / time ------------------------------------------------------------
 

@@ -1,0 +1,34 @@
+# Dev mode (design §3.1, D-033). Compose auto-loads this file on top of
+# docker-compose.yml, so plain `docker compose up` / `make up` is dev mode.
+# Production-like mode runs the base file alone (`make up-prod`).
+#
+# Changes ONLY command, DJANGO_DEBUG, volumes, stdin_open and tty for main and
+# auth. Ports, healthchecks, depends_on, the entrypoint and every other service
+# are defined in the base file, so the two modes can't drift structurally.
+#
+# Bind mounts cover the service source only. auth_common is NOT mounted: both
+# services run their pinned wheel in dev too (D-003 amendment 2). The virtualenv
+# (/opt/venv) and main's frontend build (/opt/frontend-dist) live outside /app,
+# so the mounts can't hide them. Static files are served from STATICFILES_DIRS
+# via WhiteNoise's finders while DEBUG is on, so the image's /app/staticfiles
+# being hidden doesn't matter here.
+
+services:
+  auth:
+    command: ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+    environment:
+      DJANGO_DEBUG: "1"
+    volumes:
+      - ./services/auth:/app
+    # `docker attach <container>` then `breakpoint()` works
+    stdin_open: true
+    tty: true
+
+  main:
+    command: ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+    environment:
+      DJANGO_DEBUG: "1"
+    volumes:
+      - ./services/main:/app
+    stdin_open: true
+    tty: true

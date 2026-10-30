@@ -1,0 +1,117 @@
+{
+  "pbtResults": {},
+  "executionHistory": {
+    "6. Dockerfiles and the shared entrypoint": [
+      {
+        "executionId": "6db2d155-c8d5-4694-83e9-2133d36d9a04",
+        "chatSessionId": "sess_546045ad-82cd-44d2-8747-bced456444f4",
+        "timestamp": 1793375423742
+      },
+      {
+        "executionId": "6db2d155-c8d5-4694-83e9-2133d36d9a04",
+        "chatSessionId": "sess_546045ad-82cd-44d2-8747-bced456444f4",
+        "timestamp": 1793375430681
+      },
+      {
+        "executionId": "6db2d155-c8d5-4694-83e9-2133d36d9a04",
+        "chatSessionId": "sess_546045ad-82cd-44d2-8747-bced456444f4",
+        "timestamp": 1793376000407
+      }
+    ],
+    "7. `ensure_signing_key` command (auth service, D-031)": [
+      {
+        "executionId": "6db2d155-c8d5-4694-83e9-2133d36d9a04",
+        "chatSessionId": "sess_546045ad-82cd-44d2-8747-bced456444f4",
+        "timestamp": 1793375423950
+      },
+      {
+        "executionId": "6db2d155-c8d5-4694-83e9-2133d36d9a04",
+        "chatSessionId": "sess_546045ad-82cd-44d2-8747-bced456444f4",
+        "timestamp": 1793376005519
+      },
+      {
+        "executionId": "6db2d155-c8d5-4694-83e9-2133d36d9a04",
+        "chatSessionId": "sess_546045ad-82cd-44d2-8747-bced456444f4",
+        "timestamp": 1793376401500
+      }
+    ],
+    "8. Compose: base file and dev override (D-033)": [
+      {
+        "executionId": "6db2d155-c8d5-4694-83e9-2133d36d9a04",
+        "chatSessionId": "sess_546045ad-82cd-44d2-8747-bced456444f4",
+        "timestamp": 1793375424071
+      },
+      {
+        "executionId": "6db2d155-c8d5-4694-83e9-2133d36d9a04",
+        "chatSessionId": "sess_546045ad-82cd-44d2-8747-bced456444f4",
+        "timestamp": 1793376404498
+      },
+      {
+        "executionId": "c330651d-51f1-4cc7-a129-7a37f936007a",
+        "chatSessionId": "sess_546045ad-82cd-44d2-8747-bced456444f4",
+        "timestamp": 1793376511931
+      },
+      {
+        "executionId": "0ff31df3-d567-4d27-ae54-d756642b5af7",
+        "chatSessionId": "sess_546045ad-82cd-44d2-8747-bced456444f4",
+        "timestamp": 1793377294072
+      },
+      {
+        "executionId": "0ff31df3-d567-4d27-ae54-d756642b5af7",
+        "chatSessionId": "sess_546045ad-82cd-44d2-8747-bced456444f4",
+        "timestamp": 1793377558889
+      }
+    ],
+    "9. Make targets and production-like mode (design §3.3, §9)": [
+      {
+        "executionId": "6db2d155-c8d5-4694-83e9-2133d36d9a04",
+        "chatSessionId": "sess_546045ad-82cd-44d2-8747-bced456444f4",
+        "timestamp": 1793375424199
+      },
+      {
+        "executionId": "0ff31df3-d567-4d27-ae54-d756642b5af7",
+        "chatSessionId": "sess_546045ad-82cd-44d2-8747-bced456444f4",
+        "timestamp": 1793377562247
+      },
+      {
+        "executionId": "0ff31df3-d567-4d27-ae54-d756642b5af7",
+        "chatSessionId": "sess_546045ad-82cd-44d2-8747-bced456444f4",
+        "timestamp": 1793377906416
+      }
+    ],
+    "10. README: running the system (spec 0 sections)": [
+      {
+        "executionId": "6db2d155-c8d5-4694-83e9-2133d36d9a04",
+        "chatSessionId": "sess_546045ad-82cd-44d2-8747-bced456444f4",
+        "timestamp": 1793375424311
+      },
+      {
+        "executionId": "0ff31df3-d567-4d27-ae54-d756642b5af7",
+        "chatSessionId": "sess_546045ad-82cd-44d2-8747-bced456444f4",
+        "timestamp": 1793377909768
+      },
+      {
+        "executionId": "0ff31df3-d567-4d27-ae54-d756642b5af7",
+        "chatSessionId": "sess_546045ad-82cd-44d2-8747-bced456444f4",
+        "timestamp": 1793379237498
+      }
+    ],
+    "11. Checkpoint: clean-checkout smoke test": [
+      {
+        "executionId": "6db2d155-c8d5-4694-83e9-2133d36d9a04",
+        "chatSessionId": "sess_546045ad-82cd-44d2-8747-bced456444f4",
+        "timestamp": 1793375424433
+      },
+      {
+        "executionId": "0ff31df3-d567-4d27-ae54-d756642b5af7",
+        "chatSessionId": "sess_546045ad-82cd-44d2-8747-bced456444f4",
+        "timestamp": 1793379255392
+      },
+      {
+        "executionId": "7e4b48bb-ceab-4e6f-a663-c58d59ffa85e",
+        "chatSessionId": "sess_546045ad-82cd-44d2-8747-bced456444f4",
+        "timestamp": 1793379793289
+      }
+    ]
+  }
+}

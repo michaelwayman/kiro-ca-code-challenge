@@ -70,7 +70,7 @@ Token issuing and verification, the JWKS provider, the importers, the APIs and t
   - **Finding:** the original done-when ("`uv lock` fails on a mismatched `==` pin") was **false** for path sources, which led to D-003 amendment 2.
   - _Requirements: 2.9, 8.6, 9.6, 10.1, 10.3, 10.4, 11.1, 11.3, 12.1_
 
-- [ ] 4. Main app skeleton (`services/main/`)
+- [x] 4. Main app skeleton (`services/main/`)
   - Same base as task 3 (dependencies, `env.py`, settings rules, health views, spectacular, mypy), plus:
     - `whitenoise` middleware **and** `whitenoise.runserver_nostatic` in `INSTALLED_APPS` (D-033);
     - `STATICFILES_DIRS` includes `/opt/frontend-dist` (design §7).
@@ -84,14 +84,15 @@ Token issuing and verification, the JWKS provider, the importers, the APIs and t
   - **Done when:** the backend quality gate passes in `services/main/`.
   - _Requirements: 1.6, 2.9, 4.11 (mechanism), 9.1, 9.6, 10.1, 10.3, 10.4, 11.1, 11.3, 12.1_
 
-- [ ] 5. Frontend build shells (PLACEHOLDER content, replaced in specs 4 and 5)
+- [x] 5. Frontend build shells (PLACEHOLDER content, replaced in specs 4 and 5)
+  - **As built:** one build tree, `frontend/build/` (gitignored), mirrors the image's `/opt/frontend-dist` (`css/theme.css`, `brandlist/` + `.vite/manifest.json`). Vite `base` is `/static/brandlist/` for builds and `/` for the dev server. npm install scripts are explicitly denied for `@parcel/watcher` and `fsevents` (optional watchers, unused).
   - `frontend/scss/main.scss`: a placeholder that `@use`s nothing and emits one comment. It's enough for the build to produce `theme.css`.
   - `frontend/brandlist/`: Vite + React 19.3 + TypeScript (strict) project with exact pins. `vite.config.ts` has `build.manifest = true`, the entry `src/main.tsx`, and a dev `server.proxy['/api'] = 'http://localhost:8000'`. `src/main.tsx` renders nothing into `#brand-list-root` if present.
   - Root `package.json` scripts (or Make targets) for `build:css` (Dart Sass) and `build:js` (Vite).
   - **Done when:** `npm ci && npm run build` produces `dist/.vite/manifest.json`, the SCSS build produces `theme.css`, and `tsc --noEmit` passes.
   - _Requirements: 9.3, 9.4_
 
-- [ ] 6. Dockerfiles and the shared entrypoint
+- [x] 6. Dockerfiles and the shared entrypoint
   - `services/auth/Dockerfile`: `python:3.12-slim`, uv, build context = repo root.
     - `COPY packages/wheelhouse` (released wheels only) and the service, then `uv sync --frozen --no-dev`.
     - Non-root user. `ENTRYPOINT ["/app/entrypoint.sh"]`, `CMD` = the gunicorn command (design §3.1).
@@ -107,7 +108,7 @@ Token issuing and verification, the JWKS provider, the importers, the APIs and t
     - both images run as non-root.
   - _Requirements: 2.9, 9.3_
 
-- [ ] 7. `ensure_signing_key` command (auth service, D-031)
+- [x] 7. `ensure_signing_key` command (auth service, D-031)
   - `accounts/management/commands/ensure_signing_key.py`. Behavior:
     - file exists and parses as an RSA private key → no-op;
     - `DEBUG` on and missing → generate RSA-2048, write a temp file in the same directory, `chmod 0600`, `os.replace` (atomic);
@@ -123,7 +124,7 @@ Token issuing and verification, the JWKS provider, the importers, the APIs and t
   - **Done when:** the backend quality gate passes, and the tests above are included.
   - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5, 11.4_
 
-- [ ] 8. Compose: base file and dev override (D-033)
+- [x] 8. Compose: base file and dev override (D-033)
   - `docker-compose.yml`: add `main-db`, `auth-db` (`postgres:16`, `pg_isready` healthchecks), `auth` and `main` per design §3 and §3.1. Base settings: `DJANGO_DEBUG: "0"`, gunicorn, healthchecks on `/healthz/ready`, volumes `main_db_data`, `auth_db_data`, `auth_keys`. `main` depends only on `main-db`; `auth` only on `auth-db`. **WP services are not edited.**
   - `docker-compose.override.yml`: for `main` and `auth` only.
     - `command: python manage.py runserver 0.0.0.0:8000`, `DJANGO_DEBUG: "1"`;
@@ -138,7 +139,7 @@ Token issuing and verification, the JWKS provider, the importers, the APIs and t
     6. `docker compose config` shows the WP service definitions unchanged from `git show HEAD:docker-compose.yml`.
   - _Requirements: 1.1, 1.5, 2.1, 2.2, 2.3, 2.4, 2.6, 2.7, 2.8, 6.1, 11.1, 11.2_
 
-- [ ] 9. Make targets and production-like mode (design §3.3, §9)
+- [x] 9. Make targets and production-like mode (design §3.3, §9)
   - Update `up` to start the whole stack (dev). Keep `down`, `logs`, `status`, `wp`, `bootstrap`, `dump`. `reset` also removes `main_db_data`, `auth_db_data`, `auth_keys`.
   - Add `prod-key`: a one-off `auth` container with `DJANGO_DEBUG=1` running `ensure_signing_key`, base file only.
   - Add `up-prod`: depends on `prod-key`, runs `docker compose -f docker-compose.yml up -d --build` with a per-invocation random `DJANGO_SECRET_KEY`.
@@ -154,7 +155,7 @@ Token issuing and verification, the JWKS provider, the importers, the APIs and t
     6. `make check` passes.
   - _Requirements: 2.2, 2.8, 5.4, 10.4, 12.3_
 
-- [ ] 10. README: running the system (spec 0 sections)
+- [x] 10. README: running the system (spec 0 sections)
   - Sections:
     - prerequisites (Docker only);
     - dev mode vs production-like mode (`make up` / `make up-prod`, what differs, how to `docker attach` for `breakpoint()`);
@@ -166,7 +167,7 @@ Token issuing and verification, the JWKS provider, the importers, the APIs and t
   - **Done when:** following the README from a clean clone (`make reset`) reproduces task 8 checks 1–2 and task 9 check 1.
   - _Requirements: 2.2, 8.6, 12.3_
 
-- [ ] 11. Checkpoint: clean-checkout smoke test
+- [x] 11. Checkpoint: clean-checkout smoke test
   - From `make reset`:
     - run `make up` → all healthy → stop `auth` → main still ready;
     - run `make up-prod` → all healthy → task 9 checks 2–5;

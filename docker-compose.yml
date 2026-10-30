@@ -87,6 +87,123 @@ services:
       PMA_PASSWORD: ${WORDPRESS_DB_PASSWORD:-wp}
       UPLOAD_LIMIT: 256M
 
+  # ---------------------------------------------------------------------------
+  # Django services (design §3, §3.1, D-033). This file is the PRODUCTION-LIKE
+  # mode (gunicorn, DEBUG off). docker-compose.override.yml is auto-loaded on top
+  # of it for dev mode and changes only command, DJANGO_DEBUG, volumes,
+  # stdin_open and tty for main and auth. Everything structural lives here.
+  # ---------------------------------------------------------------------------
+
+  # One Postgres per service (D-002). No host ports: only the owning service connects.
+  main-db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${MAIN_DB_NAME:-main}
+      POSTGRES_USER: ${MAIN_DB_USER:-main}
+      POSTGRES_PASSWORD: ${MAIN_DB_PASSWORD:-main}
+    volumes:
+      - main_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  auth-db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${AUTH_DB_NAME:-auth}
+      POSTGRES_USER: ${AUTH_DB_USER:-auth}
+      POSTGRES_PASSWORD: ${AUTH_DB_PASSWORD:-auth}
+    volumes:
+      - auth_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  auth:
+    build:
+      context: .
+      dockerfile: services/auth/Dockerfile
+    # Depends only on its own DB. The image's ENTRYPOINT migrates and runs
+    # ensure_signing_key before exec'ing this command (design §3.2).
+    depends_on:
+      auth-db:
+        condition: service_healthy
+    ports:
+      - "8001:8000"
+    command: ["gunicorn", "config.wsgi", "--bind", "0.0.0.0:8000", "--workers", "2"]
+    environment:
+      DJANGO_DEBUG: "0"
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-dev-insecure-change-me}
+      DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1,main,auth}
+      AUTH_DATABASE_URL: postgres://${AUTH_DB_USER:-auth}:${AUTH_DB_PASSWORD:-auth}@auth-db:5432/${AUTH_DB_NAME:-auth}
+      # WP source DB, read by import_wp_users only (spec 2)
+      WP_DB_HOST: db
+      WP_DB_PORT: "3306"
+      WP_DB_NAME: ${WORDPRESS_DB_NAME:-wp}
+      WP_DB_USER: ${WORDPRESS_DB_USER:-wp}
+      WP_DB_PASSWORD: ${WORDPRESS_DB_PASSWORD:-wp}
+      AUTH_ISSUER: ${AUTH_ISSUER:-brand-reviews-auth}
+      AUTH_AUDIENCE: ${AUTH_AUDIENCE:-brand-reviews-api}
+      AUTH_SIGNING_KEY_PATH: ${AUTH_SIGNING_KEY_PATH:-/run/keys/signing.pem}
+      AUTH_ACCESS_TTL_SECONDS: ${AUTH_ACCESS_TTL_SECONDS:-600}
+      AUTH_REFRESH_TTL_SECONDS: ${AUTH_REFRESH_TTL_SECONDS:-604800}
+    volumes:
+      # Signing key (D-031). Must already hold a key in this mode (`make prod-key`).
+      - auth_keys:/run/keys
+    healthcheck:
+      # The slim image has no curl; urlopen raises (exit 1) on any non-2xx response.
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz/ready', timeout=3)"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+  main:
+    build:
+      context: .
+      dockerfile: services/main/Dockerfile
+    # Only its own DB. NOT auth: main must start and serve public traffic while auth
+    # is down (Req 2.7, 6.1). JWKS is fetched lazily over the network (design §4.3).
+    depends_on:
+      main-db:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    command: ["gunicorn", "config.wsgi", "--bind", "0.0.0.0:8000", "--workers", "2"]
+    environment:
+      DJANGO_DEBUG: "0"
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-dev-insecure-change-me}
+      DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1,main,auth}
+      MAIN_DATABASE_URL: postgres://${MAIN_DB_USER:-main}:${MAIN_DB_PASSWORD:-main}@main-db:5432/${MAIN_DB_NAME:-main}
+      # WP source DB, read by import_wp only (spec 1)
+      WP_DB_HOST: db
+      WP_DB_PORT: "3306"
+      WP_DB_NAME: ${WORDPRESS_DB_NAME:-wp}
+      WP_DB_USER: ${WORDPRESS_DB_USER:-wp}
+      WP_DB_PASSWORD: ${WORDPRESS_DB_PASSWORD:-wp}
+      AUTH_ISSUER: ${AUTH_ISSUER:-brand-reviews-auth}
+      AUTH_AUDIENCE: ${AUTH_AUDIENCE:-brand-reviews-api}
+      AUTH_JWKS_URL: ${AUTH_JWKS_URL:-http://auth:8000/.well-known/jwks.json}
+      AUTH_JWKS_FRESH_TTL: ${AUTH_JWKS_FRESH_TTL:-300}
+      AUTH_JWKS_MAX_STALE: ${AUTH_JWKS_MAX_STALE:-3600}
+      AUTH_JWKS_REFETCH_MIN_INTERVAL: ${AUTH_JWKS_REFETCH_MIN_INTERVAL:-30}
+      VITE_DEV_SERVER: ${VITE_DEV_SERVER:-}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz/ready', timeout=3)"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
 volumes:
   db_data:
   wp_files:
+  main_db_data:
+  auth_db_data:
+  auth_keys:

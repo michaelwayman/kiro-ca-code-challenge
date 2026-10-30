@@ -1,4 +1,111 @@
-# Brand Reviews WordPress (Interview Challenge Source)
+# Brand Reviews — WP → Django migration
+
+This repository holds two things:
+
+1. **The running system** — two Django services (a public `main` app and an `auth` service), a React/TypeScript frontend, and the Docker setup that runs them. This is what you build and deploy.
+2. **The WordPress source** — a self-contained WordPress site that the migration reads from. Its documentation is preserved under [WordPress source site](#wordpress-source-site) at the end of this file.
+
+Everything below, up to that heading, describes running the Django system.
+
+## Prerequisites
+
+**Docker only.** You need Docker with Compose v2 (the `docker compose` subcommand) and `make`. Everything else — Python, uv, Node, Postgres — runs inside containers. You do not install a toolchain on the host to run the stack.
+
+(Running `make check` directly on the host does use host-side `uv` and `npm`; it is not needed to run the system.)
+
+## Running the system
+
+```bash
+cp .env.example .env    # safe local defaults; no real secrets
+make up                 # dev mode
+```
+
+`make up` builds the images and waits until every service reports healthy. Then both health endpoints return 200:
+
+```bash
+curl -fs localhost:8000/healthz/ready    # main
+curl -fs localhost:8001/healthz/ready    # auth
+```
+
+Stop with `make down` (keeps data) or `make reset` (stops **and** wipes every volume — see below).
+
+### Dev mode vs production-like mode
+
+There are two run modes (D-033). They share one base compose file so they can't drift structurally; the differences are deliberately small.
+
+| | Dev — `make up` | Production-like — `make up-prod` |
+|---|---|---|
+| Compose files | `docker-compose.yml` + auto-loaded `docker-compose.override.yml` | `docker-compose.yml` only |
+| Server | Django `runserver` (autoreload) | `gunicorn`, 2 workers |
+| `DJANGO_DEBUG` | `1` | `0` |
+| Source | bind-mounted (edit a file, it reloads) | baked into the image |
+| Static files | served from source via WhiteNoise finders | collected, hashed filenames (WhiteNoise) |
+| `/api/docs/` | 200 | 404 (schema/docs mounted only when DEBUG is on) |
+| `DJANGO_SECRET_KEY` | the `.env` dev placeholder | a fresh random value per run (`openssl rand -hex 32`); the dev placeholder is **refused** at startup (Req 10.4) |
+| Signing key | generated on demand (DEBUG on) | must be pre-provisioned; `make up-prod` runs `make prod-key` first |
+
+Both modes share the same named volumes, so imported data survives switching between them. Only `make reset` wipes data.
+
+**Attaching a debugger (dev mode).** The `main` and `auth` containers run with `stdin_open` and `tty`, so a `breakpoint()` in your code drops into an interactive `pdb` once you attach to the container:
+
+```bash
+docker attach kiro-ca-code-challenge-main-1    # or ...-auth-1
+# hit a request that reaches your breakpoint(), then debug interactively
+# detach without killing the process: Ctrl-p Ctrl-q
+```
+
+Use `docker compose ps` to confirm the exact container name if yours differs.
+
+### Ports
+
+| Service | Host port | Notes |
+|---|---|---|
+| `main` (public Django app) | `8000` | `/healthz/ready`, `/api/docs/` in dev |
+| `auth` (auth service) | `8001` | `/healthz/ready`, `/.well-known/jwks.json` |
+| `wordpress` (migration source) | `8080` | the WP site |
+| `phpmyadmin` | `8081` | optional DB browser for the WP DB |
+
+The Postgres databases (`main-db`, `auth-db`) and the WP `db` deliberately expose **no** host ports — only the owning service connects to each (D-002).
+
+### Quality gates — `make check`
+
+```bash
+make check
+```
+
+runs every component gate: `check-auth-common`, `check-auth`, `check-main`, `check-frontend`. The backend gates run `uv sync --locked` (which also proves the lockfile is current), `ruff check`, `ruff format --check`, `mypy`, and `pytest`. The frontend gate runs `npm ci`, strict `tsc --noEmit`, and the SCSS + Vite build.
+
+The backend gate first **unsets** `DJANGO_SECRET_KEY`, `DJANGO_DEBUG`, `DJANGO_ALLOWED_HOSTS` and the database URLs so the tests' own safe defaults apply. Without this, a shell that has exported the dev `DJANGO_SECRET_KEY` would trip the Req 10.4 refusal under `DEBUG=0` and fail the gate for the wrong reason.
+
+Individual gates (`make check-auth`, etc.) are available too; see `make help`.
+
+### Shipping a new `auth_common` version
+
+`auth_common` is the shared library both services depend on. It is distributed as **immutable wheels** in `packages/wheelhouse/`, and each service pins **one** wheel by path in its `pyproject.toml` and `uv.lock`. A released version's bytes never change, and the two services upgrade independently (D-003 amendment 2, D-016). The current wheel is `auth_common-0.0.1-py3-none-any.whl`.
+
+To release and roll out a new version:
+
+1. **Bump the version** in `packages/auth_common/pyproject.toml` and add a matching `## <version>` entry to `packages/auth_common/CHANGELOG.md`. (The release script refuses to build if the CHANGELOG entry is missing, or if that version's wheel already exists.)
+2. **Build the wheel:** `make release-auth-common`. This runs the library's own quality gate, then writes `packages/wheelhouse/auth_common-<version>-py3-none-any.whl`.
+3. **Opt one service in:** change that service's wheel path in `[tool.uv.sources]` (e.g. in `services/auth/pyproject.toml`) to the new filename.
+4. **Re-lock:** run `uv lock` in that service directory.
+
+The other service keeps running the older wheel until you repeat steps 3–4 for it. Nothing forces both services onto the same version at once.
+
+### Signing keys
+
+The `auth` service signs tokens with an RSA-2048 private key (D-031). The key lives in the `auth_keys` volume at `AUTH_SIGNING_KEY_PATH` (default `/run/keys/signing.pem`) and never leaves the container as anything but that PEM file. Its `kid` is the RFC 7638 thumbprint of the public key, so the JWKS entry and token headers always agree without separate configuration.
+
+- **Where it comes from:** the auth entrypoint runs `ensure_signing_key` on startup. With `DEBUG` on (dev mode) it generates the key if one is missing. With `DEBUG` off (production-like mode) it **refuses to start** when the key is missing, rather than inventing one — so a prod key must be provisioned first.
+- **`make prod-key`** provisions it: a one-off auth container with `DEBUG=1` runs `ensure_signing_key` to populate the volume, then exits. `make up-prod` runs this for you. It is a no-op if the key already exists.
+
+#### With more time
+
+**Key rotation** is not implemented. A production system would publish more than one key in the JWKS during an overlap window, sign new tokens with the incoming key while still verifying tokens signed by the outgoing one, and retire the old key only after the longest token TTL has elapsed. The `kid`-in-header plus JWKS design already supports multiple keys; the missing pieces are the rotation command and the overlap bookkeeping.
+
+---
+
+# WordPress source site
 
 Self-contained, reproducible WordPress site used as the source for a WP → Django migration challenge.
 
