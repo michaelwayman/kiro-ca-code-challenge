@@ -182,6 +182,19 @@ The single source of truth for architectural choices in this WordPress → Djang
   12. **System e2e checks** run in Playwright's request context (reuses D-025).
 - Why: each keeps a dependency out or a failure mode explicit, without adding infrastructure the challenge doesn't need.
 
+### D-035: Spec 0 as-built deviations (found in tasks 7 and 9, recorded at the task 11 checkpoint)
+- Status: Proposed · Origin: AI default (pending owner review) · Challenge question: #7
+- Decision (each item differs from or goes beyond what D-031, `.kiro/specs/system-architecture/design.md` or its tasks specify):
+  1. **A corrupt or unreadable signing key is refused in both modes.** D-031 and Req 5.4 only specify the `DEBUG`-off case. As built, `ensure_signing_key` exits non-zero naming `AUTH_SIGNING_KEY_PATH` whenever the file exists but isn't a readable RSA private key, with `DEBUG` on too. It never overwrites an existing file. It still generates only when the file is missing and `DEBUG` is on.
+  2. **`cryptography==50.0.2` is a direct, pinned dependency of the auth service.** The design doesn't name it (tech.md lists it only as PyJWT's backend). `accounts/keys.py` imports it directly to generate, load and serialize the key.
+  3. **`check-frontend` runs only `npm ci`, `tsc --noEmit` and the SCSS + Vite build.** Design §9 says it runs the `frontend.md` §7 automated steps. ESLint, Prettier, Stylelint and Vitest don't exist yet. They join the target when specs 4–5 add them.
+- Why: _[owner to fill in]_. Points in favor:
+  1. An existing file may be a mounted secret or a wrong mount. Silently replacing it in dev would invalidate issued tokens and hide the problem. "Generate only when missing" stays literally true.
+  2. Code that imports a package declares it. Relying on it arriving through `auth-common`'s `PyJWT[crypto]` would let a future library release drop it from under the service.
+  3. The gate runs every frontend check that exists today. It doesn't add tooling ahead of the specs that configure it.
+- Alternatives considered: (1) regenerate a corrupt key when `DEBUG` is on (self-healing dev, but hides a broken mount); (2) rely on the transitive dependency; (3) add placeholder ESLint/Stylelint/Vitest configs in spec 0.
+- Consequences / revisit when: (1) if accepted, Req 5.4 / D-031 can state the both-modes rule explicitly. (3) Req 12's frontend gate is incomplete until specs 4–5. Revisit `check-frontend` there.
+
 ### D-005: Roles and permissions model
 - Status: Accepted · Origin: AI default accepted
 - Decision: The auth service owns `Role` (`reader`, `editor`) → permission strings (e.g. `brands.change_description`). Tokens carry both roles and resolved permissions. The main app checks **permissions**, not role names.

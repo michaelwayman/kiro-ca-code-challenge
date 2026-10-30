@@ -1,0 +1,30 @@
+{
+  "name": "brandlist",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "<BrandList /> (Pillar 3) and the build of the global SCSS theme (Pillar 4).",
+  "scripts": {
+    "build:css": "sass --no-source-map --style=compressed ../scss/main.scss ../build/css/theme.css",
+    "build:js": "vite build",
+    "build": "npm run build:css && npm run build:js",
+    "typecheck": "tsc --noEmit",
+    "dev": "vite"
+  },
+  "dependencies": {
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.1.2",
+    "sass": "1.107.0",
+    "typescript": "7.0.2",
+    "vite": "8.3.5"
+  },
+  "allowScripts": {
+    "@parcel/watcher": false,
+    "fsevents": false
+  }
+}
