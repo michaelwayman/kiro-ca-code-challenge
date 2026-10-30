@@ -1,0 +1,56 @@
+[project]
+name = "auth-common"
+version = "0.0.1"
+description = "Token verification and permission checks shared by the main app and the auth service."
+readme = "README.md"
+requires-python = ">=3.12"
+# Library metadata uses bounded ranges, not exact pins (D-003 amendment): each service's
+# lockfile pins exact versions, so services can move within these ranges independently.
+# Exact versions for this package's own tests come from its uv.lock.
+dependencies = [
+    "pyjwt[crypto]>=2.15.1,<3",
+]
+
+[project.optional-dependencies]
+# DRF adapter (auth_common.drf). Core modules never import Django (Req 8.3).
+drf = [
+    "django>=5.2.18,<5.3",          # 5.2 LTS line (tech.md)
+    "djangorestframework>=3.18.3,<4",
+]
+
+[dependency-groups]
+dev = [
+    # Newest stubs compatible with Django 5.2; DRF stubs 3.16.x are the line built on django-stubs 5.2.
+    "django-stubs[compatible-mypy]==5.2.9",
+    "djangorestframework-stubs==3.16.9",
+    "mypy==1.19.1",                 # the newest mypy django-stubs 5.2.9 supports
+    "pytest==9.2.0",
+    "ruff==0.17.3",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/auth_common"]
+
+# --- Tooling ---------------------------------------------------------------
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "ANN", "SIM", "RUF"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unused_ignores = true
+files = ["src", "tests"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers"

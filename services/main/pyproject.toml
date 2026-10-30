@@ -1,0 +1,67 @@
+[project]
+name = "main-service"
+version = "0.1.0"
+description = "Main app: brands, reviews, industries, pages and the brands API (Pillars 1–3)."
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "auth-common[drf]",            # version pinned by the wheel path in [tool.uv.sources]
+    "dj-database-url==3.1.2",
+    "django==5.2.18",
+    "djangorestframework==3.18.3",
+    "drf-spectacular==0.30.0",
+    "gunicorn==26.2.0",
+    "psycopg[binary]==3.3.6",
+    "whitenoise==6.12.0",
+]
+
+[dependency-groups]
+dev = [
+    "django-stubs[compatible-mypy]==5.2.9",
+    "djangorestframework-stubs==3.16.9",
+    "mypy==1.19.1",
+    "pytest==9.2.0",
+    "pytest-django==4.14.0",
+    "ruff==0.17.3",
+]
+
+[tool.uv]
+package = false   # a Django project, not a distributable package
+
+# auth-common is pinned by pointing at ONE released, immutable wheel in the local wheelhouse
+# (a file-based private index, D-003). The wheel filename *is* the pin: upgrading means
+# changing this path and re-locking. Other services can stay on an older wheel (D-016).
+# A path source is stored relative in uv.lock (portable), and is never looked up on PyPI.
+[tool.uv.sources]
+auth-common = { path = "../../packages/wheelhouse/auth_common-0.0.1-py3-none-any.whl" }
+
+# --- Tooling ---------------------------------------------------------------
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = ["*/migrations/*"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "ANN", "SIM", "RUF", "DJ"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unused_ignores = true
+plugins = ["mypy_django_plugin.main", "mypy_drf_plugin.main"]
+files = ["config", "catalog", "wp_import", "api", "pages", "tests", "manage.py"]
+exclude = ["/migrations/"]
+
+[[tool.mypy.overrides]]
+module = ["*.migrations.*"]
+ignore_errors = true
+
+[tool.django-stubs]
+# The test settings module supplies safe env defaults, so mypy can import settings
+# without a running database or a populated environment.
+django_settings_module = "tests.settings"
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "tests.settings"
+testpaths = ["tests"]
+addopts = "-ra --strict-markers -p no:cacheprovider"

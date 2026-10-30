@@ -1,0 +1,47 @@
+# Build context is the repo root for services/main and services/auth (design §2).
+# Keep it small, and never send secrets or the WP source tree into an image.
+
+# Secrets and local env
+.env
+.env.*
+!.env.example
+
+# VCS, editor, and agent metadata
+.git/
+.gitignore
+.kiro/
+.agents/
+.claude/
+.vscode/
+.idea/
+**/.DS_Store
+
+# WordPress source (read-only input; imports read it over the network, not from the image)
+wp-content/
+db/
+scripts/
+reference/
+
+# Python build and cache artifacts
+**/.venv/
+**/__pycache__/
+**/*.py[cod]
+**/.pytest_cache/
+**/.mypy_cache/
+**/.ruff_cache/
+**/*.egg-info/
+**/build/
+**/.coverage
+**/htmlcov/
+
+# Node build and cache artifacts
+**/node_modules/
+**/dist/
+**/.vite/
+**/coverage/
+**/playwright-report/
+**/test-results/
+**/blob-report/
+
+# Logs
+**/*.log
